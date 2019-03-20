@@ -32,17 +32,17 @@ class RandomForestClassification_CV(learning_methods.learning_methods):
                     可选项: 'neg_log_loss' 'roc_auc' ,'neg_mean_squared_error' 等
             n_jobs: 多少个线程,默认为3
             save_model: True or False, 表示是否保存模型,保存路径为 processed_data_version_dir/modules/
-            processed_data_version_dir: 存放log 或者保存模型的目录,默认为 ./ 
+            processed_data_version_dir: 存放log 或者保存模型的目录,默认为 ./
         """
         super(RandomForestClassification_CV,self).__init__(x,y,metric,metric_proba=metric_proba,labels=labels,scoring=scoring,save_model=save_model,processed_data_version_dir=processed_data_version_dir)
         self.model = RandomForestClassifier(n_jobs=n_jobs)
         self.n_jobs=n_jobs
 
-    
+
 
     #scoring:neg_log_loss
     def cross_validation(self):
-        scoring = self.scoring 
+        scoring = self.scoring
         self.train_score()
         self.cv_score()
 
@@ -65,7 +65,7 @@ class RandomForestClassification_CV(learning_methods.learning_methods):
 
         self.cv_score()
         self.train_score()
-  
+
 
         params = {'min_samples_split':tunned_min_samples_split}
         gsearch = GridSearchCV(estimator = self.model,param_grid = params,scoring=scoring,n_jobs=self.n_jobs,iid=False,cv=3)
@@ -92,6 +92,6 @@ class RandomForestClassification_CV(learning_methods.learning_methods):
         self.train_score()
 
         self.plot_save('RandomForestClassifier')
-    
+
         return self.model
 

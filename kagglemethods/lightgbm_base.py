@@ -25,8 +25,7 @@ class lightgbm_CV(object):
             x: numpy array
             y: numpy array
             tunning_params: 字典类型，key是待调整参数名,values是候选集合
-            metric: sklearn 中的函数，用来在交叉验证中评估验证集上的效果，不过auc 不行，因为auc的参数 不是 (y_true,y_pred) 的形式
-                 optional: http://scikit-learn.org/stable/modules/classes.html#sklearn-metrics-metrics
+            metric: sklearn 中的函数，用来在交叉验证中评估验证集上的效果                 optional: http://scikit-learn.org/stable/modules/classes.html#sklearn-metrics-metrics
             metric_proba: 0, 表示 metric 函数是否接受模型输出0-1之间的概率值
             metric_name: 'auc' 这个参数表示 调用lightgbm.cv函数时用来度量的损失函数，可选值为
                 options :
@@ -88,10 +87,12 @@ class lightgbm_CV(object):
         #return the best n_estimators
         params = self.model.get_params()
         params['verbosity'] = -1
-        num_rounds = 500
-        early_stopping = 10
+        num_rounds = 5000
+        early_stopping = 200
         dtrain = lgb.Dataset(self.x,label=self.y)
         ## 第一个参数其实是 booster参数，其实 silent 和 n_jobs都不是booster参数
+
+       
         lgbm = lgb.cv(params,dtrain,num_boost_round=num_rounds,nfold=5,metrics = self.metric_name,early_stopping_rounds=early_stopping,verbose_eval=False)
         best_rounds = len(lgbm[self.metric_name+'-mean'])
         self.model.set_params(n_estimators=best_rounds)
@@ -170,7 +171,7 @@ class lightgbm_CV(object):
 
     def cross_validation(self):
         scoring = self.scoring
-        for param_item in self.tunning_params.keys():
+        for ind,param_item in enumerate(self.tunning_params.keys()):
             print('tunning {} ...'.format(param_item))
             params = {param_item:self.tunning_params[param_item]}
             print(self.model.get_params())
@@ -179,6 +180,13 @@ class lightgbm_CV(object):
             #这是一种将变量作为参数名的方法
             to_set = {param_item:gsearch.best_params_[param_item]}
             self.model.set_params(**to_set)
+            ###保存每个参数及其分数到log中
+            self.logger.add('======={}====='.format(str(ind)))
+            for i,(params_cv,mean_score) in enumerate(zip(gsearch.cv_results_['params'],gsearch.cv_results_['mean_test_score'])):
+                ##将dict拼接成字符串
+                for key in params_cv.keys():
+                    sent = '{}-{}:{}'.format(key,str(params_cv[key]),str(mean_score))
+                self.logger.add(sent)
             print(gsearch.best_params_)
             self.modelfit()
             print('best_num_round after tunning para: {}'.format(self.model.get_params()['n_estimators']))
@@ -189,5 +197,5 @@ class lightgbm_CV(object):
         self.logger.add(params,ifdict=1)
         #用新参数重新训练一遍
         self.model.fit(self.x,self.y)
-        
+
         return self.model
