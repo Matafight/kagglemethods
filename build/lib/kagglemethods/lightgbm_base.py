@@ -92,20 +92,8 @@ class lightgbm_CV(object):
         dtrain = lgb.Dataset(self.x,label=self.y)
         ## 第一个参数其实是 booster参数，其实 silent 和 n_jobs都不是booster参数
 
-        ## 定义一个list保存验证集上
-        cv_mid_result = []
-        def mycallback():
-            def callback(env):
-                print(env.evaluation_result_list)
-                #for name, loss_name, loss_value, _ in env.evaluation_result_list:
-                #    channel_name = '{}_{}'.format( name, loss_name)
-                #    #neptune.send_metric(channel_name, x=env.iteration, y=loss_value)
-                #    cv_mid_result.append(channel_name)
-            return callback
-        lgbm = lgb.cv(params,dtrain,num_boost_round=num_rounds,nfold=5,metrics = self.metric_name,early_stopping_rounds=early_stopping,verbose_eval=False,callbacks=[mycallback()])
-        ## 这里可以通过callback函数获取每一轮迭代在训练集和验证集上的效果
-        print("================in modelfit==================")
-        print(cv_mid_result)
+       
+        lgbm = lgb.cv(params,dtrain,num_boost_round=num_rounds,nfold=5,metrics = self.metric_name,early_stopping_rounds=early_stopping,verbose_eval=False)
         best_rounds = len(lgbm[self.metric_name+'-mean'])
         self.model.set_params(n_estimators=best_rounds)
         self.model.fit(self.x,self.y)

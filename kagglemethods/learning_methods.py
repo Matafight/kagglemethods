@@ -2,6 +2,7 @@
 
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import StratifiedKFold
 import matplotlib.pyplot as plt
 import numpy as np
 from . import log_class
@@ -12,7 +13,7 @@ class learning_methods(object):
     """
     这是一个基类，继承该类的子类可以直接使用基类的函数也可以重写基类的函数，xgboost方法就应该重写，sklearn内嵌的方法应该可以直接使用。cv_score 应该支持引入评估准则参数
     """
-    def __init__(self,x,y,metric,metric_proba = False,labels = None,scoring = 'auc',save_model=False,processed_data_version_dir='./'):
+    def __init__(self,x,y,metric,metric_proba = False,labels = None,scoring = 'auc',save_model=False,processed_data_version_dir='./',if_classification=0):
         """
         初始化相关参数
 
@@ -28,6 +29,7 @@ class learning_methods(object):
             n_jobs: 多少个线程,默认为2
             save_model: True or False, 表示是否保存模型,保存路径为 processed_data_version_dir/modules/
             processed_data_version_dir: 存放log 或者保存模型的目录,默认为 ./ 
+            if_classification:0 or 1 表示是否为分类任务
         """
         import os
         if not os.path.exists(processed_data_version_dir):
@@ -44,6 +46,7 @@ class learning_methods(object):
         self.cv_scores = []
 
         self.path = processed_data_version_dir
+        self.if_classification = if_classification
         
 
     def plot_save(self,name='learning_method'):
@@ -93,22 +96,26 @@ class learning_methods(object):
         self.train_scores.append(score)
 
     def cv_score(self):
-        # 5-fold crossvalidation error
-        kf = KFold(n_splits = 5)
+        # 3-fold crossvalidation error
+        if self.if_classification == 1:
+            kf = StratifiedKFold(n_splits = 3,shuffle=True,random_state=2018)
+        else:
+            kf = KFold(n_splits=3,shuffle=True,random_state=2018)
         score = []
-        for train_ind,test_ind in kf.split(self.x):
+        for train_ind,test_ind in kf.split(self.x,self.y):
             train_valid_x,train_valid_y = self.x[train_ind],self.y[train_ind]
             test_valid_x,test_valid_y = self.x[test_ind],self.y[test_ind]
             self.model.fit(train_valid_x,train_valid_y)
             if self.metric_proba == False:
                 pred_test = self.model.predict(test_valid_x)
             else:
+                print("==========predict proba===========")
                 pred_test = self.model.predict_proba(test_valid_y)[:,1]
-
-            if self.labels == None:
-                score.append(self.metric(test_valid_y,pred_test))
-            else:
-                score.append(self.metric(test_valid_y,pred_test,labels=self.labels))
+            ##这个本意是为了防止交叉验证中缺少某一类样本而设置的参数labels,但其实很多时候都没有必要，而且roc_auc_score并不支持labels这个参数
+            #if self.labels == None:
+            score.append(self.metric(test_valid_y,pred_test))
+            #else:
+            #    score.append(self.metric(test_valid_y,pred_test,labels=self.labels))
 
         mean_cv_score = np.mean(score)
         self.cv_scores.append(mean_cv_score)
