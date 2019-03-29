@@ -21,6 +21,8 @@ def missing_data(data):
    tt['Types'] = types
    return(np.transpose(tt))
 
+def bivariate_dist():
+    pass
 
 def univariate_dist(df,column,variable_type = 'cont'):
     '''
@@ -63,8 +65,8 @@ def fill_missing(df,column, method='mean'):
 
 
 def transform_cate_feat(df,column,method='onehot'):
-    """ 
-    两种处理离散特征的方法: 
+    """
+    两种处理离散特征的方法:
     1. onehot
     2. labelencoder
     """
@@ -83,7 +85,7 @@ if __name__ == '__main__':
     df = pd.DataFrame({'a':[1,2,3,4,5,6,np.nan],'b':['r','e','d',np.nan,'r','e','e']})
     # missing data
     #print(missing_data(df))
-    
+
     #univariate_dist(df,'a',variable_type='cont')
     #univariate_dist(df,'b',variable_type='cate')
 
@@ -95,6 +97,6 @@ if __name__ == '__main__':
 
 
 
-        
+
 
 

@@ -168,34 +168,76 @@ class lightgbm_CV(object):
 
 
 
-
     def cross_validation(self):
-        scoring = self.scoring
-        for ind,param_item in enumerate(self.tunning_params.keys()):
-            print('tunning {} ...'.format(param_item))
-            params = {param_item:self.tunning_params[param_item]}
-            print(self.model.get_params())
-            gsearch = GridSearchCV(self.model,param_grid=params,scoring=scoring,n_jobs=1,iid=False,cv=3)
-            gsearch.fit(self.x,self.y)
-            #这是一种将变量作为参数名的方法
-            to_set = {param_item:gsearch.best_params_[param_item]}
-            self.model.set_params(**to_set)
-            ###保存每个参数及其分数到log中
+        """
+        由于gridsearch_cv不能对num_boost_round调整, 所以这里换一种交叉验证的方式
+        """
+        
+        x = self.x 
+        y = self.y 
+        best_param = {}
+        for ind, param_item in enumerate(self.tunning_params.keys()):
+            #return the best n_estimators
+            base_params = self.model.get_params()
+            base_params['verbosity'] = -1
+            cv_scores = []
             self.logger.add('======={}====='.format(str(ind)))
-            for i,(params_cv,mean_score) in enumerate(zip(gsearch.cv_results_['params'],gsearch.cv_results_['mean_test_score'])):
-                ##将dict拼接成字符串
-                for key in params_cv.keys():
-                    sent = '{}-{}:{}'.format(key,str(params_cv[key]),str(mean_score))
+            for tar_param in self.tunning_params[param_item]:
+                base_params[param_item]=tar_param
+                dtrain = lgb.Dataset(x,label=y)
+                ## 第一个参数其实是 booster参数，其实 silent 和 n_jobs都不是booster参数
+                lgbm = lgb.cv(base_params,dtrain,num_boost_round=10000,nfold=3,metrics = self.metric_name,early_stopping_rounds=500,verbose_eval=False,seed = ind)
+                best_rounds = len(lgbm[self.metric_name+'-mean'])
+                self.model.set_params(n_estimators=best_rounds)
+                cv_scores.append(lgbm[self.metric_name+'-mean'][-1])
+                sent = '{}-{}:{}'.format(param_item,str(tar_param),str(lgbm[self.metric_name+'-mean'][-1]))
                 self.logger.add(sent)
-            print(gsearch.best_params_)
-            self.modelfit()
-            print('best_num_round after tunning para: {}'.format(self.model.get_params()['n_estimators']))
-            self.cv_score()
-
+            ##求cv_scores 最大的index
+            cv_scores=np.array(cv_scores)
+            ind = np.argmax(cv_scores)
+            best_param[param_item]=self.tunning_params[param_item][ind]
+            to_set = {param_item:self.tunning_params[param_item][ind]}
+            self.model.set_params(**to_set)
         ## 保存最终的参数
+        
         params = self.model.get_params()
         self.logger.add(params,ifdict=1)
         #用新参数重新训练一遍
         self.model.fit(self.x,self.y)
-
         return self.model
+
+                
+
+            
+
+
+    # def cross_validation(self):
+    #     scoring = self.scoring
+    #     for ind,param_item in enumerate(self.tunning_params.keys()):
+    #         print('tunning {} ...'.format(param_item))
+    #         params = {param_item:self.tunning_params[param_item]}
+    #         print(self.model.get_params())
+    #         gsearch = GridSearchCV(self.model,param_grid=params,scoring=scoring,n_jobs=1,iid=False,cv=3)
+    #         gsearch.fit(self.x,self.y)
+    #         #这是一种将变量作为参数名的方法
+    #         to_set = {param_item:gsearch.best_params_[param_item]}
+    #         self.model.set_params(**to_set)
+    #         ###保存每个参数及其分数到log中
+    #         self.logger.add('======={}====='.format(str(ind)))
+    #         for i,(params_cv,mean_score) in enumerate(zip(gsearch.cv_results_['params'],gsearch.cv_results_['mean_test_score'])):
+    #             ##将dict拼接成字符串
+    #             for key in params_cv.keys():
+    #                 sent = '{}-{}:{}'.format(key,str(params_cv[key]),str(mean_score))
+    #             self.logger.add(sent)
+    #         print(gsearch.best_params_)
+    #         self.modelfit()
+    #         print('best_num_round after tunning para: {}'.format(self.model.get_params()['n_estimators']))
+    #         self.cv_score()
+
+    #     ## 保存最终的参数
+    #     params = self.model.get_params()
+    #     self.logger.add(params,ifdict=1)
+    #     #用新参数重新训练一遍
+    #     self.model.fit(self.x,self.y)
+
+    #     return self.model
