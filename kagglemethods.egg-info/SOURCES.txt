@@ -1,6 +1,7 @@
 README.md
 setup.py
 kagglemethods/__init__.py
+kagglemethods/draw.py
 kagglemethods/eda.py
 kagglemethods/feature_selection.py
 kagglemethods/learning_methods.py
