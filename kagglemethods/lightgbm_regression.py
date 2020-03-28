@@ -11,7 +11,7 @@ class lightgbmRegression_CV(lightgbm_base.lightgbm_CV):
     """
     lightgbm 用于回归任务的交叉验证代码
     """
-    def __init__(self,x,y,metric,metric_proba=False,metric_name='l2',scoring = 'neg_mean_squared_error',n_jobs=2,save_model=False,processed_data_version_dir='./'):
+    def __init__(self,x,y,tunning_params,metric,metric_proba=False,metric_name='l2',scoring = 'neg_mean_squared_error',n_jobs=2,save_model=False,processed_data_version_dir='./'):
         """
         初始化相关参数
         
@@ -52,7 +52,7 @@ class lightgbmRegression_CV(lightgbm_base.lightgbm_CV):
             save_model: True or False, 表示是否保存模型,保存路径为 processed_data_version_dir/modules/
             processed_data_version_dir: 存放log 或者保存模型的目录,默认为 ./
         """
-        super(lightgbmRegression_CV,self).__init__(x,y,metric,metric_proba=metric_proba,metric_name=metric_name,scoring=scoring,n_jobs=n_jobs,save_model = save_model,processed_data_version_dir = processed_data_version_dir)
+        super(lightgbmRegression_CV,self).__init__(x,y,tunning_params,metric,metric_proba=metric_proba,metric_name=metric_name,scoring=scoring,n_jobs=n_jobs,save_model = save_model,processed_data_version_dir = processed_data_version_dir)
         self.model = LGBMRegressor(silent=True,n_jobs=n_jobs)
    
   
